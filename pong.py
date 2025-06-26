@@ -60,6 +60,9 @@ clock = pygame.time.Clock()
 AI_ENABLED = True
 AI_DIFFICULTY = 0.08  # Lower is easier, higher is harder (0.05-0.15 recommended)
 
+# Add pause functionality
+PAUSED = False
+
 # Helper functions
 def reset_ball():
     global ball_dx, ball_dy
@@ -84,6 +87,17 @@ while True:
             right_score = 0
             reset_ball()
             game_state = START
+        if game_state == PLAYING and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p:
+                PAUSED = not PAUSED
+
+    if PAUSED and game_state == PLAYING:
+        screen.fill(BLACK)
+        draw_center_text('PAUSED', font, WHITE, HEIGHT//2)
+        draw_center_text('Press P to resume', pygame.font.Font(None, 48), WHITE, HEIGHT//2 + 50)
+        pygame.display.flip()
+        clock.tick(60)
+        continue
 
     if game_state == START:
         screen.fill(BLACK)
