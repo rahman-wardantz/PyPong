@@ -60,6 +60,9 @@ clock = pygame.time.Clock()
 # Add AI for right paddle
 AI_ENABLED = True
 AI_DIFFICULTY = 0.08  # Lower is easier, higher is harder (0.05-0.15 recommended)
+# AI error chance and max speed
+AI_ERROR_CHANCE = 0.15  # 0.0 = selalu tepat, 1.0 = selalu salah
+AI_MAX_SPEED = 6
 
 # Add pause functionality
 PAUSED = False
@@ -157,11 +160,16 @@ while True:
         left_paddle.y += PADDLE_SPEED
     # Right paddle movement (AI or player)
     if AI_ENABLED and game_state == PLAYING:
-        # Simple AI: move towards the ball
-        if right_paddle.centery < ball.centery:
-            right_paddle.y += int(PADDLE_SPEED * AI_DIFFICULTY * abs(ball.centery - right_paddle.centery))
-        elif right_paddle.centery > ball.centery:
-            right_paddle.y -= int(PADDLE_SPEED * AI_DIFFICULTY * abs(ball.centery - right_paddle.centery))
+        # Simple AI: move towards the ball, with error
+        ai_target = ball.centery
+        if random.random() < AI_ERROR_CHANCE:
+            ai_target += random.randint(-60, 60)  # AI kadang salah prediksi
+        move = int(PADDLE_SPEED * AI_DIFFICULTY * abs(ai_target - right_paddle.centery))
+        move = min(move, AI_MAX_SPEED)
+        if right_paddle.centery < ai_target:
+            right_paddle.y += move
+        elif right_paddle.centery > ai_target:
+            right_paddle.y -= move
         # Clamp paddle position
         if right_paddle.top < 0:
             right_paddle.top = 0
