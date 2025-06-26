@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+import time
 
 # Initialize pygame
 pygame.init()
@@ -76,8 +77,8 @@ THEMES = [
 ]
 theme_index = 0
 
-# Add score history
-score_history = []
+# Add score history with timestamp
+score_history = []  # (scorer, l, r, timestamp)
 
 # Helper functions
 def reset_ball():
@@ -195,13 +196,13 @@ while True:
     # Ball out of bounds
     if ball.left <= 0:
         right_score += 1
-        score_history.append(('Right', left_score, right_score))
+        score_history.append(('Right', left_score, right_score, time.time()))
         if SCORE_SOUND:
             SCORE_SOUND.play()
         reset_ball()
     if ball.right >= WIDTH:
         left_score += 1
-        score_history.append(('Left', left_score, right_score))
+        score_history.append(('Left', left_score, right_score, time.time()))
         if SCORE_SOUND:
             SCORE_SOUND.play()
         reset_ball()
@@ -213,14 +214,27 @@ while True:
 
     # Drawing
     screen.fill(BG_COLOR)
-    pygame.draw.rect(screen, FG_COLOR, left_paddle)
-    pygame.draw.rect(screen, FG_COLOR, right_paddle)
+    # Draw center dashed line
+    dash_height = 20
+    dash_gap = 15
+    for y in range(0, HEIGHT, dash_height + dash_gap):
+        pygame.draw.rect(screen, FG_COLOR, (WIDTH//2 - 2, y, 4, dash_height), border_radius=2)
+    # Draw paddles with rounded corners
+    pygame.draw.rect(screen, FG_COLOR, left_paddle, border_radius=8)
+    pygame.draw.rect(screen, FG_COLOR, right_paddle, border_radius=8)
+    # Draw ball with shadow
+    shadow_offset = 4
+    pygame.draw.ellipse(screen, (0,0,0,80), ball.move(shadow_offset, shadow_offset))
     pygame.draw.ellipse(screen, FG_COLOR, ball)
-    pygame.draw.aaline(screen, FG_COLOR, (WIDTH//2, 0), (WIDTH//2, HEIGHT))
 
+    # Draw scores with subtle shadow
+    left_text = font.render(str(left_score), True, (0,0,0))
+    screen.blit(left_text, (WIDTH//4+2, 22))
     left_text = font.render(str(left_score), True, FG_COLOR)
-    right_text = font.render(str(right_score), True, FG_COLOR)
     screen.blit(left_text, (WIDTH//4, 20))
+    right_text = font.render(str(right_score), True, (0,0,0))
+    screen.blit(right_text, (WIDTH*3//4+2, 22))
+    right_text = font.render(str(right_score), True, FG_COLOR)
     screen.blit(right_text, (WIDTH*3//4, 20))
 
     # FPS display
@@ -229,14 +243,43 @@ while True:
         fps_text = fps_font.render(f'FPS: {fps}', True, FG_COLOR)
         screen.blit(fps_text, (10, 10))
 
-    # Score history display (last 5)
+    # Score history display (last 5, only if <3s old)
     hist_font = pygame.font.Font(None, 28)
     y_offset = HEIGHT - 30
-    for entry in score_history[-5:][::-1]:
-        scorer, l, r = entry
+    now = time.time()
+    for entry in score_history[::-1]:
+        scorer, l, r, t = entry
+        if now - t > 3:
+            continue
         hist_text = hist_font.render(f'{scorer} scored! {l}-{r}', True, FG_COLOR)
         screen.blit(hist_text, (10, y_offset))
         y_offset -= 22
+        if y_offset < 0:
+            break
+
+    # Show controls at the top right in a semi-transparent box ONLY on start/pause/game over
+    show_controls = (game_state in [START, GAME_OVER]) or (PAUSED and game_state == PLAYING)
+    if show_controls:
+        controls_font = pygame.font.Font(None, 24)
+        controls = [
+            'Controls:',
+            'W/S: Move Left Paddle',
+            'Up/Down: Move Right Paddle',
+            'P: Pause',
+            'T: Theme',
+            'R: Reset',
+            'Esc: Quit'
+        ]
+        box_width = 240
+        box_height = len(controls) * 22 + 16
+        box_surf = pygame.Surface((box_width, box_height), pygame.SRCALPHA)
+        box_surf.fill((30,30,30,180))
+        y_ctrl = 8
+        for ctrl in controls:
+            ctrl_text = controls_font.render(ctrl, True, (255,255,255))
+            box_surf.blit(ctrl_text, (12, y_ctrl))
+            y_ctrl += 22
+        screen.blit(box_surf, (WIDTH - box_width - 10, 10))
 
     pygame.display.flip()
     clock.tick(60)
