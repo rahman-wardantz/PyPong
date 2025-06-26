@@ -47,8 +47,8 @@ def load_sound(path):
         return pygame.mixer.Sound(path)
     except Exception:
         return None
-PADDLE_SOUND = load_sound('paddle.wav')
-SCORE_SOUND = load_sound('score.wav')
+PADDLE_SOUND = load_sound('gameboy-pluck-41265.mp3')
+SCORE_SOUND = load_sound('8-bit-powerup-6768.mp3')
 
 # Game states
 START, PLAYING, GAME_OVER = 0, 1, 2
@@ -61,8 +61,8 @@ clock = pygame.time.Clock()
 AI_ENABLED = True
 AI_DIFFICULTY = 0.08  # Lower is easier, higher is harder (0.05-0.15 recommended)
 # AI error chance and max speed
-AI_ERROR_CHANCE = 0.15  # 0.0 = selalu tepat, 1.0 = selalu salah
-AI_MAX_SPEED = 6
+AI_ERROR_CHANCE = 0.25  # 0.0 = selalu tepat, 1.0 = selalu salah (disarankan 0.15-0.3)
+AI_MAX_SPEED = 3  # Batasi kecepatan paddle AI
 
 # Add pause functionality
 PAUSED = False
@@ -82,6 +82,13 @@ theme_index = 0
 
 # Add score history with timestamp
 score_history = []  # (scorer, l, r, timestamp)
+
+# Power-up feature
+POWERUP_SIZE = 24
+POWERUP_DURATION = 5  # seconds
+powerup = None  # {'rect': pygame.Rect, 'type': str, 'active': bool, 'spawn_time': float}
+powerup_types = ['enlarge', 'shrink', 'speed']
+powerup_effect = None  # {'type': str, 'end_time': float, 'target': str}
 
 # Helper functions
 def reset_ball():
@@ -160,10 +167,10 @@ while True:
         left_paddle.y += PADDLE_SPEED
     # Right paddle movement (AI or player)
     if AI_ENABLED and game_state == PLAYING:
-        # Simple AI: move towards the ball, with error
+        # AI: move towards the ball, with error and speed limit
         ai_target = ball.centery
         if random.random() < AI_ERROR_CHANCE:
-            ai_target += random.randint(-60, 60)  # AI kadang salah prediksi
+            ai_target += random.randint(-80, 80)  # AI kadang salah prediksi
         move = int(PADDLE_SPEED * AI_DIFFICULTY * abs(ai_target - right_paddle.centery))
         move = min(move, AI_MAX_SPEED)
         if right_paddle.centery < ai_target:
@@ -220,6 +227,59 @@ while True:
     ball_dx = max(-max_speed, min(ball_dx, max_speed))
     ball_dy = max(-max_speed, min(ball_dy, max_speed))
 
+    # Power-up spawn logic
+    if powerup is None and game_state == PLAYING and random.random() < 0.002:
+        px = random.randint(WIDTH//4, WIDTH*3//4 - POWERUP_SIZE)
+        py = random.randint(50, HEIGHT-50-POWERUP_SIZE)
+        ptype = random.choice(powerup_types)
+        powerup = {'rect': pygame.Rect(px, py, POWERUP_SIZE, POWERUP_SIZE), 'type': ptype, 'active': True, 'spawn_time': time.time()}
+
+    # Power-up collision
+    if powerup and powerup['active']:
+        if ball.colliderect(powerup['rect']):
+            # Apply effect to the last hitter
+            if ball_dx < 0:
+                target = 'left'
+            else:
+                target = 'right'
+            effect_end = time.time() + POWERUP_DURATION
+            powerup_effect = {'type': powerup['type'], 'end_time': effect_end, 'target': target}
+            powerup['active'] = False
+
+    # Power-up effect logic
+    if powerup_effect:
+        # Use nonlocal for ball speed change
+        if powerup_effect['type'] == 'enlarge':
+            if powerup_effect['target'] == 'left':
+                left_paddle.height = 160
+            else:
+                right_paddle.height = 160
+        elif powerup_effect['type'] == 'shrink':
+            if powerup_effect['target'] == 'left':
+                left_paddle.height = 60
+            else:
+                right_paddle.height = 60
+        elif powerup_effect['type'] == 'speed':
+            # Set ball_dx and ball_dy direction, but with new speed
+            sign_x = 1 if ball_dx > 0 else -1
+            sign_y = 1 if ball_dy > 0 else -1
+            ball_dx = 8 * sign_x
+            ball_dy = 8 * sign_y
+        if time.time() > powerup_effect['end_time']:
+            left_paddle.height = PADDLE_HEIGHT
+            right_paddle.height = PADDLE_HEIGHT
+            # Reset ball speed to default, keep direction
+            sign_x = 1 if ball_dx > 0 else -1
+            sign_y = 1 if ball_dy > 0 else -1
+            ball_dx = 5 * sign_x
+            ball_dy = 5 * sign_y
+            powerup_effect = None
+            powerup = None
+
+    # Remove powerup if not taken after 7 seconds
+    if powerup and powerup['active'] and time.time() - powerup['spawn_time'] > 7:
+        powerup = None
+
     # Drawing
     screen.fill(BG_COLOR)
     # Draw center dashed line
@@ -244,6 +304,15 @@ while True:
     screen.blit(right_text, (WIDTH*3//4+2, 22))
     right_text = font.render(str(right_score), True, FG_COLOR)
     screen.blit(right_text, (WIDTH*3//4, 20))
+
+    # Draw powerup
+    if powerup and powerup['active']:
+        color = (0, 200, 255) if powerup['type'] == 'enlarge' else (255, 100, 0) if powerup['type'] == 'shrink' else (255, 255, 0)
+        pygame.draw.rect(screen, color, powerup['rect'], border_radius=8)
+        pfont = pygame.font.Font(None, 28)
+        label = {'enlarge': '+', 'shrink': '-', 'speed': 'S'}[powerup['type']]
+        text = pfont.render(label, True, (0,0,0))
+        screen.blit(text, (powerup['rect'].x+6, powerup['rect'].y+2))
 
     # FPS display
     if show_fps:
