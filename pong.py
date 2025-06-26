@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 
 # Initialize pygame
 pygame.init()
@@ -37,13 +38,64 @@ font = pygame.font.Font(None, 74)
 ball_dx = BALL_SPEED_X
 ball_dy = BALL_SPEED_Y
 
+# Sound effects
+pygame.mixer.init()
+# Improved sound effect loading (use real .wav files if available)
+def load_sound(path):
+    try:
+        return pygame.mixer.Sound(path)
+    except Exception:
+        return None
+PADDLE_SOUND = load_sound('paddle.wav')
+SCORE_SOUND = load_sound('score.wav')
+
+# Game states
+START, PLAYING, GAME_OVER = 0, 1, 2
+game_state = START
+WINNING_SCORE = 5
+
 clock = pygame.time.Clock()
+
+# Helper functions
+def reset_ball():
+    global ball_dx, ball_dy
+    ball.x, ball.y = WIDTH//2 - BALL_SIZE//2, HEIGHT//2 - BALL_SIZE//2
+    ball_dx = BALL_SPEED_X * random.choice([-1, 1])
+    ball_dy = BALL_SPEED_Y * random.choice([-1, 1])
+
+def draw_center_text(text, font, color, y):
+    text_surface = font.render(text, True, color)
+    rect = text_surface.get_rect(center=(WIDTH//2, y))
+    screen.blit(text_surface, rect)
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if game_state == START and event.type == pygame.KEYDOWN:
+            game_state = PLAYING
+        if game_state == GAME_OVER and event.type == pygame.KEYDOWN:
+            left_score = 0
+            right_score = 0
+            reset_ball()
+            game_state = START
+
+    if game_state == START:
+        screen.fill(BLACK)
+        draw_center_text('PyPong', font, WHITE, HEIGHT//2 - 50)
+        draw_center_text('Press any key to start', pygame.font.Font(None, 48), WHITE, HEIGHT//2 + 30)
+        pygame.display.flip()
+        clock.tick(60)
+        continue
+    if game_state == GAME_OVER:
+        screen.fill(BLACK)
+        winner = 'Left Player' if left_score >= WINNING_SCORE else 'Right Player'
+        draw_center_text(f'{winner} Wins!', font, WHITE, HEIGHT//2 - 50)
+        draw_center_text('Press any key to restart', pygame.font.Font(None, 48), WHITE, HEIGHT//2 + 30)
+        pygame.display.flip()
+        clock.tick(60)
+        continue
 
     keys = pygame.key.get_pressed()
     # Left paddle movement
@@ -67,17 +119,32 @@ while True:
 
     # Ball collision with paddles
     if ball.colliderect(left_paddle) or ball.colliderect(right_paddle):
-        ball_dx *= -1
+        # Calculate bounce angle based on where the ball hits the paddle
+        if ball.colliderect(left_paddle):
+            offset = (ball.centery - left_paddle.centery) / (PADDLE_HEIGHT / 2)
+        else:
+            offset = (ball.centery - right_paddle.centery) / (PADDLE_HEIGHT / 2)
+        ball_dx *= -1.1  # Speed up ball
+        ball_dy = (BALL_SPEED_Y * offset) or ball_dy * 1.05
+        if PADDLE_SOUND:
+            PADDLE_SOUND.play()
 
     # Ball out of bounds
     if ball.left <= 0:
         right_score += 1
-        ball.x, ball.y = WIDTH//2 - BALL_SIZE//2, HEIGHT//2 - BALL_SIZE//2
-        ball_dx = -BALL_SPEED_X
+        if SCORE_SOUND:
+            SCORE_SOUND.play()
+        reset_ball()
     if ball.right >= WIDTH:
         left_score += 1
-        ball.x, ball.y = WIDTH//2 - BALL_SIZE//2, HEIGHT//2 - BALL_SIZE//2
-        ball_dx = BALL_SPEED_X
+        if SCORE_SOUND:
+            SCORE_SOUND.play()
+        reset_ball()
+
+    # Prevent ball from getting too fast
+    max_speed = 15
+    ball_dx = max(-max_speed, min(ball_dx, max_speed))
+    ball_dy = max(-max_speed, min(ball_dy, max_speed))
 
     # Drawing
     screen.fill(BLACK)
