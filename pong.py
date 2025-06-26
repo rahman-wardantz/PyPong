@@ -56,6 +56,10 @@ WINNING_SCORE = 5
 
 clock = pygame.time.Clock()
 
+# Add AI for right paddle
+AI_ENABLED = True
+AI_DIFFICULTY = 0.08  # Lower is easier, higher is harder (0.05-0.15 recommended)
+
 # Helper functions
 def reset_ball():
     global ball_dx, ball_dy
@@ -103,11 +107,23 @@ while True:
         left_paddle.y -= PADDLE_SPEED
     if keys[pygame.K_s] and left_paddle.bottom < HEIGHT:
         left_paddle.y += PADDLE_SPEED
-    # Right paddle movement
-    if keys[pygame.K_UP] and right_paddle.top > 0:
-        right_paddle.y -= PADDLE_SPEED
-    if keys[pygame.K_DOWN] and right_paddle.bottom < HEIGHT:
-        right_paddle.y += PADDLE_SPEED
+    # Right paddle movement (AI or player)
+    if AI_ENABLED and game_state == PLAYING:
+        # Simple AI: move towards the ball
+        if right_paddle.centery < ball.centery:
+            right_paddle.y += int(PADDLE_SPEED * AI_DIFFICULTY * abs(ball.centery - right_paddle.centery))
+        elif right_paddle.centery > ball.centery:
+            right_paddle.y -= int(PADDLE_SPEED * AI_DIFFICULTY * abs(ball.centery - right_paddle.centery))
+        # Clamp paddle position
+        if right_paddle.top < 0:
+            right_paddle.top = 0
+        if right_paddle.bottom > HEIGHT:
+            right_paddle.bottom = HEIGHT
+    else:
+        if keys[pygame.K_UP] and right_paddle.top > 0:
+            right_paddle.y -= PADDLE_SPEED
+        if keys[pygame.K_DOWN] and right_paddle.bottom < HEIGHT:
+            right_paddle.y += PADDLE_SPEED
 
     # Move the ball
     ball.x += ball_dx
