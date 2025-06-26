@@ -63,6 +63,10 @@ AI_DIFFICULTY = 0.08  # Lower is easier, higher is harder (0.05-0.15 recommended
 # Add pause functionality
 PAUSED = False
 
+# Add FPS display
+show_fps = True
+fps_font = pygame.font.Font(None, 32)
+
 # Helper functions
 def reset_ball():
     global ball_dx, ball_dy
@@ -187,6 +191,12 @@ while True:
     right_text = font.render(str(right_score), True, WHITE)
     screen.blit(left_text, (WIDTH//4, 20))
     screen.blit(right_text, (WIDTH*3//4, 20))
+
+    # FPS display
+    if show_fps:
+        fps = int(clock.get_fps())
+        fps_text = fps_font.render(f'FPS: {fps}', True, WHITE)
+        screen.blit(fps_text, (10, 10))
 
     pygame.display.flip()
     clock.tick(60)
