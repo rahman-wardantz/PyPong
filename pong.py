@@ -67,6 +67,15 @@ PAUSED = False
 show_fps = True
 fps_font = pygame.font.Font(None, 32)
 
+# Add color themes
+THEMES = [
+    {'bg': (0,0,0), 'fg': (255,255,255)},
+    {'bg': (30,30,60), 'fg': (255, 200, 0)},
+    {'bg': (20, 20, 20), 'fg': (0, 255, 128)},
+    {'bg': (255,255,255), 'fg': (0,0,0)},
+]
+theme_index = 0
+
 # Helper functions
 def reset_ball():
     global ball_dx, ball_dy
@@ -94,27 +103,34 @@ while True:
         if game_state == PLAYING and event.type == pygame.KEYDOWN:
             if event.key == pygame.K_p:
                 PAUSED = not PAUSED
+            if event.key == pygame.K_t:
+                theme_index = (theme_index + 1) % len(THEMES)
+
+    BG_COLOR = THEMES[theme_index]['bg']
+    FG_COLOR = THEMES[theme_index]['fg']
 
     if PAUSED and game_state == PLAYING:
-        screen.fill(BLACK)
-        draw_center_text('PAUSED', font, WHITE, HEIGHT//2)
-        draw_center_text('Press P to resume', pygame.font.Font(None, 48), WHITE, HEIGHT//2 + 50)
+        screen.fill(BG_COLOR)
+        draw_center_text('PAUSED', font, FG_COLOR, HEIGHT//2)
+        draw_center_text('Press P to resume', pygame.font.Font(None, 48), FG_COLOR, HEIGHT//2 + 50)
         pygame.display.flip()
         clock.tick(60)
         continue
 
     if game_state == START:
-        screen.fill(BLACK)
-        draw_center_text('PyPong', font, WHITE, HEIGHT//2 - 50)
-        draw_center_text('Press any key to start', pygame.font.Font(None, 48), WHITE, HEIGHT//2 + 30)
+        screen.fill(BG_COLOR)
+        draw_center_text('PyPong', font, FG_COLOR, HEIGHT//2 - 50)
+        draw_center_text('Press any key to start', pygame.font.Font(None, 48), FG_COLOR, HEIGHT//2 + 30)
+        draw_center_text('Press T to change theme', pygame.font.Font(None, 32), FG_COLOR, HEIGHT//2 + 80)
         pygame.display.flip()
         clock.tick(60)
         continue
     if game_state == GAME_OVER:
-        screen.fill(BLACK)
+        screen.fill(BG_COLOR)
         winner = 'Left Player' if left_score >= WINNING_SCORE else 'Right Player'
-        draw_center_text(f'{winner} Wins!', font, WHITE, HEIGHT//2 - 50)
-        draw_center_text('Press any key to restart', pygame.font.Font(None, 48), WHITE, HEIGHT//2 + 30)
+        draw_center_text(f'{winner} Wins!', font, FG_COLOR, HEIGHT//2 - 50)
+        draw_center_text('Press any key to restart', pygame.font.Font(None, 48), FG_COLOR, HEIGHT//2 + 30)
+        draw_center_text('Press T to change theme', pygame.font.Font(None, 32), FG_COLOR, HEIGHT//2 + 80)
         pygame.display.flip()
         clock.tick(60)
         continue
@@ -181,21 +197,21 @@ while True:
     ball_dy = max(-max_speed, min(ball_dy, max_speed))
 
     # Drawing
-    screen.fill(BLACK)
-    pygame.draw.rect(screen, WHITE, left_paddle)
-    pygame.draw.rect(screen, WHITE, right_paddle)
-    pygame.draw.ellipse(screen, WHITE, ball)
-    pygame.draw.aaline(screen, WHITE, (WIDTH//2, 0), (WIDTH//2, HEIGHT))
+    screen.fill(BG_COLOR)
+    pygame.draw.rect(screen, FG_COLOR, left_paddle)
+    pygame.draw.rect(screen, FG_COLOR, right_paddle)
+    pygame.draw.ellipse(screen, FG_COLOR, ball)
+    pygame.draw.aaline(screen, FG_COLOR, (WIDTH//2, 0), (WIDTH//2, HEIGHT))
 
-    left_text = font.render(str(left_score), True, WHITE)
-    right_text = font.render(str(right_score), True, WHITE)
+    left_text = font.render(str(left_score), True, FG_COLOR)
+    right_text = font.render(str(right_score), True, FG_COLOR)
     screen.blit(left_text, (WIDTH//4, 20))
     screen.blit(right_text, (WIDTH*3//4, 20))
 
     # FPS display
     if show_fps:
         fps = int(clock.get_fps())
-        fps_text = fps_font.render(f'FPS: {fps}', True, WHITE)
+        fps_text = fps_font.render(f'FPS: {fps}', True, FG_COLOR)
         screen.blit(fps_text, (10, 10))
 
     pygame.display.flip()
