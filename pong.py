@@ -76,6 +76,9 @@ THEMES = [
 ]
 theme_index = 0
 
+# Add score history
+score_history = []
+
 # Helper functions
 def reset_ball():
     global ball_dx, ball_dy
@@ -182,11 +185,13 @@ while True:
     # Ball out of bounds
     if ball.left <= 0:
         right_score += 1
+        score_history.append(('Right', left_score, right_score))
         if SCORE_SOUND:
             SCORE_SOUND.play()
         reset_ball()
     if ball.right >= WIDTH:
         left_score += 1
+        score_history.append(('Left', left_score, right_score))
         if SCORE_SOUND:
             SCORE_SOUND.play()
         reset_ball()
@@ -213,6 +218,15 @@ while True:
         fps = int(clock.get_fps())
         fps_text = fps_font.render(f'FPS: {fps}', True, FG_COLOR)
         screen.blit(fps_text, (10, 10))
+
+    # Score history display (last 5)
+    hist_font = pygame.font.Font(None, 28)
+    y_offset = HEIGHT - 30
+    for entry in score_history[-5:][::-1]:
+        scorer, l, r = entry
+        hist_text = hist_font.render(f'{scorer} scored! {l}-{r}', True, FG_COLOR)
+        screen.blit(hist_text, (10, y_offset))
+        y_offset -= 22
 
     pygame.display.flip()
     clock.tick(60)
