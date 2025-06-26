@@ -91,6 +91,14 @@ def draw_center_text(text, font, color, y):
     rect = text_surface.get_rect(center=(WIDTH//2, y))
     screen.blit(text_surface, rect)
 
+# Add reset score/history with R key
+def reset_game():
+    global left_score, right_score, score_history
+    left_score = 0
+    right_score = 0
+    score_history.clear()
+    reset_ball()
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -99,15 +107,15 @@ while True:
         if game_state == START and event.type == pygame.KEYDOWN:
             game_state = PLAYING
         if game_state == GAME_OVER and event.type == pygame.KEYDOWN:
-            left_score = 0
-            right_score = 0
-            reset_ball()
+            reset_game()
             game_state = START
         if game_state == PLAYING and event.type == pygame.KEYDOWN:
             if event.key == pygame.K_p:
                 PAUSED = not PAUSED
             if event.key == pygame.K_t:
                 theme_index = (theme_index + 1) % len(THEMES)
+            if event.key == pygame.K_r:
+                reset_game()
 
     BG_COLOR = THEMES[theme_index]['bg']
     FG_COLOR = THEMES[theme_index]['fg']
@@ -125,6 +133,7 @@ while True:
         draw_center_text('PyPong', font, FG_COLOR, HEIGHT//2 - 50)
         draw_center_text('Press any key to start', pygame.font.Font(None, 48), FG_COLOR, HEIGHT//2 + 30)
         draw_center_text('Press T to change theme', pygame.font.Font(None, 32), FG_COLOR, HEIGHT//2 + 80)
+        draw_center_text('Press R to reset score/history', pygame.font.Font(None, 28), FG_COLOR, HEIGHT//2 + 120)
         pygame.display.flip()
         clock.tick(60)
         continue
@@ -134,6 +143,7 @@ while True:
         draw_center_text(f'{winner} Wins!', font, FG_COLOR, HEIGHT//2 - 50)
         draw_center_text('Press any key to restart', pygame.font.Font(None, 48), FG_COLOR, HEIGHT//2 + 30)
         draw_center_text('Press T to change theme', pygame.font.Font(None, 32), FG_COLOR, HEIGHT//2 + 80)
+        draw_center_text('Press R to reset score/history', pygame.font.Font(None, 28), FG_COLOR, HEIGHT//2 + 120)
         pygame.display.flip()
         clock.tick(60)
         continue
